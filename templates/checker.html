@@ -1,0 +1,105 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<h1>Mitigation Checker</h1>
+
+<div id="searchBar">
+<label for="techniqueInput">Enter attack technique or attack ID:</label>
+<input type="text" id="techniqueInput" placeholder="Enter technique" onkeyup="searchAutocomplete()">
+<button onclick="getMitigation()">Get Mitigation</button>
+</div>
+<div id="autocompleteList" class="autocomplete-items"></div>
+
+<div>
+    <h2>Mitigation Result:</h2>
+    <p id="mitigationResult"></p>
+</div>
+
+<script>
+    let techniqueData = [];
+    
+    fetch('/get_mitigation_data')
+        .then(response => response.json())
+        .then(data => {
+            techniqueData = data;
+        })
+        .catch(error => {
+            console.error('Error fetching JSON', error);
+        });
+    
+    function getMitigation() {
+        const input = document.getElementById('techniqueInput').value;
+        const result = techniqueData.find(technique => 
+            technique.technique === input || technique.techniqueid === input
+            || technique.description === input
+        );
+        if (result) {
+            document.getElementById('mitigationResult').innerText = 
+                `Mitigation ID: ${result.mitigationid},
+                 Mitigation: ${result.mitigation},
+                 Technique Description: ${result.description}`; 
+        } else {
+            document.getElementById('mitigationResult').innerText = "Mitigation not found";
+        }
+
+        }
+    
+    function searchAutocomplete() {
+        var input = document.getElementById('techniqueInput').value;
+        var autocompleteList = document.getElementById('autocompleteList');
+        autocompleteList.innerHTML = '';
+
+        if (input.length === 0) {
+        autocompleteList.style.display = 'none';
+        return;
+        }
+
+        // Create an object to track displayed suggestions
+        var displayedSuggestions = {};
+
+        techniqueData.forEach(function(item) {
+            if (item.technique.toLowerCase().startsWith(input.toLowerCase())) {
+            // Check if the suggestion is already displayed
+            if (!displayedSuggestions[item.technique.toLowerCase()]) {
+                var divElement = document.createElement('DIV');
+                divElement.innerHTML = "<strong>" + item.technique.substr(0, input.length) + "</strong>";
+                divElement.innerHTML += item.technique.substr(input.length);
+                divElement.innerHTML += "<input type='hidden' value='" + item.technique + "'>";
+
+                divElement.addEventListener("click", function(e) {
+                    document.getElementById('techniqueInput').value = this.getElementsByTagName("input")[0].value;
+                    autocompleteList.innerHTML = '';
+                    autocompleteList.style.display = 'none'; // Hide autocomplete on selection
+                });
+
+                autocompleteList.appendChild(divElement);
+
+                // Mark this suggestion as displayed
+                displayedSuggestions[item.technique.toLowerCase()] = true;
+                }
+            }
+        });
+
+        if (autocompleteList.childElementCount > 0) {
+            autocompleteList.style.display = 'block'; // Show autocomplete suggestions
+        } else {
+            autocompleteList.style.display = 'none'; // Hide autocomplete if no suggestions
+        }
+    }
+                
+        function updateAutocompletePosition() {
+        var searchBar = document.getElementById('searchBar'); // Replace with your search bar's ID
+        var autocompleteList = document.getElementById('autocompleteList');
+
+        if (searchBar && autocompleteList) {
+            var rect = searchBar.getBoundingClientRect();
+            autocompleteList.style.left = rect.left + 'px';
+            autocompleteList.style.top = (rect.top + searchBar.offsetHeight) + 'px';
+            autocompleteList.style.width = searchBar.offsetWidth + 'px';
+        }
+    }
+   
+</script>
+
+
+{% endblock content%}
